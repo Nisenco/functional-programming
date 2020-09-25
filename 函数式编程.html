@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script type="text/javascript" src="underscore.js"></script>
+	<script type="text/javascript" src="jquery-3.5.1.min.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+	window.onload=()=>{
+
+		// base function start
+		function fail(thing){
+			return new Error(thing)
+		}
+		function warn(thing){
+			console.log(['WARNNING: ',thing].join(' '));
+		}
+		function note(thing){
+			console.log(['NOTE: ',thing].join(' '));
+		}
+
+		function existy(x){return x != null}
+
+		function truthy(x){
+			return (x != false) && exity(x);
+		}
+
+		function doWhen(cond,action){
+			if(truthy(cond)){
+				return action();
+			}else{
+				return undefined;
+			}
+		}
+
+		function cat(){
+			var head = _.first(arguments);
+			if(existy(head)){
+				return head.concat.apply(head,_.rest(arguments));
+			}else {
+				return [];
+			}
+		}
+
+		function splat(fun){
+			return function(array){
+				return fun.apply(null, array);
+			}
+		}
+
+		function unsplat(fun){
+			return function(){
+				return fun.call(null,_.toArray(arguments));
+			}
+		}
+		function mapcat(fun,coll){
+			return cat.apply(null,_.map(coll,fun))
+		}
+		//  函数接受一个元素和一个数组；
+		function construct(head,tail){
+			return cat([head],_.toArray(tail));
+		}
+
+		// 判断什么是索引的数据类型
+		function isIndexed(data){
+			return _.isArray(data)|| _.isString(data);
+		}
+		function nth(a, index){
+			if(!_.isNumber(index)) fail("Expected a number as the index");
+			if(!isIndexed(a)) fail("Not supported on non-indexed type");
+			if((index)<0 || (index > a.length -1)){
+				fail("Index value is out of bounds");
+			}
+			return a[index];
+		}
+
+		function second(a){
+			return nth(a,1);
+		}
+		// base function end
+		// 模拟闭包
+		// 闭包是一个函数 捕获作用域的外部绑定
+		function whatWasTheLocal(){
+			var CAPTURED = 'Oh hai';
+			return function(){
+				return "the local was:" + CAPTURED;
+			}
+		}
+		function createScaleFunction(FACTOR){
+			return function(v){
+				return _.map(v,function(n){
+					return (n * FACTOR);
+				})
+			}
+		}
+		var scale0 = createScaleFunction(10);`'`
+		console.log(scale0([1,2,3]));
+
+		function createWeirdScaleFunction(FACTOR){
+			return function (v){
+				this['FACTOR'] = FACTOR;
+				var captures = this;
+				return _.map(v,function(n){
+					return (n*FACTOR);
+				},captures)
+			}
+		}
+   
+		function makeAdder(CAPTURED){
+			return function(free){
+				return free + CAPTURED;
+			}
+		}
+		var addVar = makeAdder(10);
+		console.log(addVar(12));
+		console.log(addVar(20));
+		var shadowed = 0;
+		function argShadow(shadowed){
+			return ['value is :',shadowed].join(' ');
+		}
+		console.log(argShadow(109));
+		console.log(argShadow());
+
+		function complement(PRED){
+			return function(){
+				return !PRED.apply(null,_.toArray(arguments));
+			}
+		}
+
+		function finder(valueFun, bestFun, coll){
+			return _.reduce(coll, function(best,current){
+				var bestValue = valueFun(best);
+				var currentValue = valueFun(current);
+
+				return (bestValue === bestFun(bestValue,currentValue))?best:current;
+			})
+		}
+		console.log(finder(_.identity,Math.max,[1,2,3,4,5]));
+
+		function best(fun,coll){
+			return _.reduce(coll, function(x,y){
+				return fun(x,y)? x:y;
+			});
+		}
+
+		function repeat(times,VALUE){
+			return _.map(_.range(times), function(){return VALUE;})
+		}
+
+		console.log(repeat(3,'sdfads'));
+
+		function repeatedly(times,fun){
+			return _.map(_.range(times),fun);
+		}
+		console.log(repeatedly(3,function(){
+			return Math.floor((Math.random()*10)+1);
+		}))
+
+		console.log(repeatedly(3,function(n){
+			var id = `id${n}`;
+			$('body').append($("<p>odelays!</p>").attr('id',id));
+			return id;
+		}));
+
+		function iterateUntil(fun,check,init){
+			var ret = [];
+			var result = fun(init);
+			while (check(result)) {
+				ret.push(result);
+				result = fun(result);
+			}
+			return ret;
+		}
+
+		console.log(iterateUntil(function(n){return n+n},
+			function(n){
+			return n<=1024;
+		},1));
+
+		console.log(repeatedly(5,function(exp){return Math.pow(2,exp+1)}));
+
+		function always(VALUE){
+			return function(){
+				return VALUE;
+			}
+		}
+
+		// 1 闭包会捕获一个值或者引用并多次返回相同的值
+		// 2 每一个新的闭包都会捕获不一样的值
+		var f = always(function(){});
+		console.log(f() == f());
+		var g = always(function(){});
+		console.log(f()== g());
+
+		console.log(repeatedly(3,always('tyty')));
+
+		function invoker(NAME,METHOD){
+			return function(target){
+				if(!exity(target)){
+					fail('Must provide a target');
+				}
+				var targetMethod = target[NAME];
+				var args = _.rest(arguments);
+				return doWhen((exity(targetMethod) && METHOD === targetMethod),function(){
+					return targetMethod.apply(target,args);
+				})
+			}
+		}
+
+		function uniqueString1(len){
+			return Math.random().toString(36).substring(2, len);
+		}
+
+		function uniqueString(prefix){
+			return [prefix, new Date().getTime()].join('');
+		}
+		// 使用闭包函数
+		function makeUniqueStringFunction(start){
+			var count = start;
+			return function (prefix){
+				return [prefix,count++].join('');
+			} 
+		}
+		function fnull(fun){
+			var defaults = _.rest(arguments);
+			return function(){
+				var args = _.map(arguments,function(e,i){
+					return existy(e)?e:defaults[i];
+				});
+				return fun.apply(null,args);
+			}
+		}
+		var nums = [1,2,3,null,5];
+		var safeMult = fnull(function(total,n){return total*n},1,2);
+		console.log(_.reduce(nums,safeMult));
+		function defaults(d){
+			return function(o,k){
+				var val = fnull(_.identity,d[k]);
+				return o && val(o[k]);
+			}
+		}
+		function doSometing(config){
+			var lookup = defaults({critical:108});
+			return lookup(config,'critical');
+		}
+
+		console.log(doSometing({critical:9}));
+
+		// demo
+		// 判断对象是否有效
+		// 接受一组谓词函数（返回true or false 的函数）,并返回一个验证函数
+		// 返回的验证函数在给定对象上执行的每个谓词，并对每一个返回false 的谓词增加一个特殊的错误字符串到数组。
+		// 如果所有的谓词函数返回true ，那么最终返回的结果是一个空数组；否则，结果为错误消息的数组。
+		function checker(/* validator */){
+			var validators = _.toArray(arguments);
+			return function(obj){
+				return _.reduce(validators,function(errs,check){
+					if(check(obj)){
+						return errs;
+					}else{
+						return _.chain(errs).push(check.message).value();
+					}
+				},[])
+			}
+		}
+
+		function validator(message,fun){
+			var f = function(){
+				return fun.apply(fun,arguments);
+			}
+			f['message'] = message;
+			return f;
+		}
+		function hasKeys(){
+			var KEYS = _.toArray(arguments);
+			var fun = function(obj){
+				return _.every(KEYS, function(k){
+					return _.has(obj,k);
+				});
+			}
+			fun.message = cat(['must have values for keys:'],KEYS).join('');
+			return fun;
+		}
+
+		function dispatch(/*funs*/){
+			var funs = _.toArray(arguments);
+			var size = funs.length;
+			return function(target/*,args*/){
+				var ret = undefined;
+				var args = _.rest(arguments);
+
+				for(var funIndex = 0;funIndex<size; funIndex++){
+					var fun = funs[funIndex];
+					ret = fun.apply(fun,construct(target,args));
+					if(existy(ret)) return ret;
+				}
+				return ret;
+			}
+		}
+
+		function stringReverse(s){
+			if(!_.isString(s)) return undefined;
+			return s.split('').reverse().join('');
+		}
+
+		//  柯里化（currying）
+		function rightAwayInvoker(){
+			var args = _.toArray(arguments);
+			console.log(args);
+			var method = args.shift();
+			var target = args.shift();
+			return method.apply(target,args);
+		}
+		console.log(rightAwayInvoker(Array.prototype.reverse,[12,3]));
+
+		function leftCurryDiv(n){
+			return function (d){
+				return n/d;
+			}
+		}
+
+		function rightCurryDiv(d){
+			return function(n){
+				return n/d;
+			}
+		}
+
+		function curry(fun){
+			return function(arg){
+				return fun(arg);
+			}
+		}
+		function curry2(fun){
+			return function(secondAry){
+				return function(firstAry){
+					return fun(firstAry,secondAry);
+				}
+			}
+		}
+
+		function div(n,d){
+			return n/d;
+		}
+		var div10 = curry2(div)(10);
+		console.log(div10(50));
+
+		var plays = [{artist:'12',track:'arv'},{artist:'12',track:'arv'},{artist:'12',track:'arv'},{artist:'12',track:'arv'},{artist:'12',track:'arv'},{artist:'12',track:'arv'}];
+		function songToString(song){
+			return [song.artist,song.track].join('-');
+		} 
+		var songCount = curry2(_.countBy)(songToString);
+		console.log(songCount(plays));
+
+		function curry3(fun){
+			return function(last){
+				return function(middle){
+					return function(first){
+						return fun(first,middle,last);
+					}
+				}
+			}
+		}
+
+		var songPlayed = curry3(_.uniq)(false)(songToString);
+		console.log(songPlayed(plays));
+
+		function toHex(n){
+			var hex = n.toString(16);
+			return (hex.length<2) ? [0,hex].join(''):hex;
+		}
+
+		function rgbToHexString(r,g,b){
+			return ['#',toHex[r],toHex[g],toHex[b]].join('');
+		}
+
+		function partial1(fun,arg1){
+			return function(/*args*/){
+				var args = construct(arg1,arguments);
+				return fun.apply(fun,args);
+			}
+		}
+
+		var over10Part1 = partial1(div,10);
+		console.log(over10Part1(5));
+
+		function partial2(fun,arg1,arg2){
+			return function(/* args */){
+				var args = cat([arg1,arg2],arguments);
+				return fun.apply(fun,args);
+			}
+		}
+
+		function partial(fun,/*args*/){
+			var pargs = _.rest(arguments);
+			return function(/* arguments*/){
+				var args = cat(pargs,_.toArray(arguments));
+				return fun.apply(fun,args);
+			}
+		}
+
+		var over10Partial = partial(div,10);
+		console.log(over10Partial(2));
+
+		function condition1(/* validators */){
+			var validators = _.toArray(arguments);
+
+			return function(fun, arg){
+				var errors = mapcat(function(isValid){
+					return isValid(arg)?[]:[isValid.message];
+				},validators);
+
+				if(!_.isEmpty(errors)){
+					throw new Error(errors.join(","));
+				}
+
+				return fun(arg);
+			}
+		}
+		var zero = validator("cannot be zero",function(n){return 0 === n})
+		var sqrPre = condition1(
+			validator("arg must not be zero", complement(zero)),
+			validator("arg must be a nember", _.isNumber));
+		console.log(sqrPre(_.identity,10));
+		// console.log(sqrPre(_.identity,''));
+		// console.log(sqrPre(_.identity,0));
+
+		function uncheckedSqr(n){ return n*n};
+
+		console.log(uncheckedSqr(''));
+
+		var validateCommand = condition1(
+			validator('arg must be a map', _.isObject),
+			validator('arg must have the correct keys', hasKeys('msg','type'))
+			);
+		var createCommand = partial(validateCommand,_.identity);
+
+		// function isntString(str){
+		// 	return !_.isString(str);
+		// }
+
+		var isntString = _.compose(function(x){return !x},_.isString);
+		console.log(isntString([]));
+
+		function not(x){
+			return !x;
+		}
+
+		var composedMapcat = _.compose(splat(cat),_.map);
+		console.log(composedMapcat([[1,2],[3,4]]),_.identity);
+
+		var sqrPost = condition1(
+			validator('result should be a number', _.isNumber),
+			validator('result should not be zero', complement(zero))
+			);
+		// sqrPost(_.identity,0);
+
+		//  递归
+
+		function myLength(ary){
+			if(_.isEmpty(ary)){
+				return 0;
+			}else{
+				return 1 + myLength(_.rest(ary));
+			}
+		}
+
+		console.log(myLength([1,2,3]));
+		function cycle (time, arg) {
+			if(time <= 0){
+				return [];
+			}else{
+				return cat(arg,cycle(time-1,arg));
+			}
+		}
+		console.log(cycle(3,[1,2,3]));
+		console.log(_.zip(['a','b'],[1,2]));
+		function constructPair(pair,rests){
+			return [construct(_.first(pair),_.first(rests)),
+				construct(second(pair), second(rests))
+
+			]
+		}
+		console.log(constructPair(['a',1],[[],[]]));
+
+		console.log(_.zip([1,2,3],[4,5,6]));
+
+		function unzip(pairs){
+			if(_.isEmpty(pairs)) return [[],[]];
+			return constructPair(_.first(pairs),unzip(_.rest(pairs)));
+		}
+		console.log(unzip(_.zip([1,2,3],[4,5,6])));
+		// 递归函数规则
+		// 1 知道什么时候停止
+		// 2 决定怎样算一个步骤
+		// 3 把问题分解成一个步骤和一个较小的问题
+		
+	}
+</script>
+
+<!-- <div id="dd" onclick="(function(){alert(1)})()" style="width:20px;height:20px;border: 1px solid red"></div> -->
+</body>
+</html>
