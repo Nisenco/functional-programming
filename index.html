@@ -24,7 +24,7 @@
 		function existy(x){return x != null}
 
 		function truthy(x){
-			return (x != false) && exity(x);
+			return (x != false) && existy(x);
 		}
 
 		function doWhen(cond,action){
@@ -198,12 +198,12 @@
 
 		function invoker(NAME,METHOD){
 			return function(target){
-				if(!exity(target)){
+				if(!existy(target)){
 					fail('Must provide a target');
 				}
 				var targetMethod = target[NAME];
 				var args = _.rest(arguments);
-				return doWhen((exity(targetMethod) && METHOD === targetMethod),function(){
+				return doWhen((existy(targetMethod) && METHOD === targetMethod),function(){
 					return targetMethod.apply(target,args);
 				})
 			}
@@ -519,6 +519,113 @@
 			} 
 		}
 		console.log(nexts(influences,'Lisp'));
+		var rev = invoker('reverse',Array.prototype.reverse);
+		console.log(_.map([[1,2,3]],rev));
+		// 深度优先自递归搜索
+		function deepSearch(graph,nodes,seen){
+			if(_.isEmpty(nodes)) return rev(seen);
+			var node = _.first(nodes);
+			var more = _.rest(nodes);
+
+			if(_.contains(seen,nodes)){
+				return deepSearch(graph,more,seen);
+			}else{
+				return deepSearch(graph,cat(nexts(graph,node),more),construct(node,seen));
+			}
+		}
+		console.log(deepSearch(influences,['Lisp'],[]));
+
+		// myLength 的尾递归实现
+		function tcLength(ary,n){
+			var l = n?n:0;
+			if(_.isEmpty(ary)){
+				return l;
+			}else {
+				return tcLength(_.rest(ary),l+1)
+			}
+		}
+		console.log(tcLength(_.range(10)));
+
+		// 递归和组合函数 Conjoin 和Disjoin
+		function isEven(n){
+			return (n%2) === 0
+		}
+		var isOdd = complement(isEven);
+		// 递归版本的checker 函数
+		function andify(){
+			var preds = _.toArray(arguments);
+			return function (){
+				var args = _.toArray(arguments);
+				var everything = function(ps,truth){
+					if(_.isEmpty(ps)){
+						return truth;
+					}else {
+						return _.every(args,_.first(ps)) && everything(_.rest(ps),truth);
+					}
+				}
+				return everything(preds,true);
+			}
+		}
+
+		var evenNumber = andify(_.isNumber,isEven);
+
+		console.log(evenNumber(1,2));
+
+		console.log(evenNumber(4,2));
+
+		function orify(){
+			var preds = _.toArray(arguments);
+			return function(){
+				var args = _.toArray(arguments);
+				var something = function(ps,truth){
+					if(_.isEmpty(ps)){
+						return truth;
+					}else {
+						return _.some(args,_.first(ps)) || something(_.rest(ps),truth)
+					}
+				}
+				return something(preds,false);
+			}
+		}
+		var zeroOrOdd = orify(isOdd,zero);
+		console.log(zeroOrOdd(),'zeroOrOdd');
+		console.log(zeroOrOdd(2,4));
+
+		//  相互关联函数（函数调用其他会在调用它的函数）
+		function evenSteven(n){
+			if(n === 0){
+				return true;
+			}else {
+				return oddJohn(Math.abs(n)-1);
+			}
+		}
+		function oddJohn(n){
+			if(n === 0){
+				return true;
+			}else{
+				return evenSteven(Math.abs(n) - 1);
+			}
+		}
+		function flat(array){
+	 		if(_.isArray(array)){
+	 			return cat.applay(cat,_.map(array,flat))
+	 		}else {
+	 			return [array];
+	 		}
+	 	}
+
+	 	function deepClone(obj){
+	 		if(!existy(obj) || !_.isObject(obj)){
+	 			return obj
+	 		}
+	 		var temp = new obj.constructor();
+	 		for(var key in obj){
+	 			if(obj.hasOwnProperty(key)){
+	 				temp[key] = deepClone(obj(key));
+	 			}
+	 		}
+	 		return temp;
+	 	}
 	}
 </script>
 
