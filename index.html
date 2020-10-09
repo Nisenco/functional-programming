@@ -20,7 +20,7 @@
 		function note(thing){
 			console.log(['NOTE: ',thing].join(' '));
 		}
-
+		function not (x){ return !x ;}
 		function existy(x){return x != null}
 
 		function truthy(x){
@@ -621,11 +621,128 @@
 	 		var temp = new obj.constructor();
 	 		for(var key in obj){
 	 			if(obj.hasOwnProperty(key)){
-	 				temp[key] = deepClone(obj(key));
+	 				temp[key] = deepClone(obj[key]);
 	 			}
 	 		}
 	 		return temp;
+
 	 	}
+	 	var x = [{a:[123],b:32},{c:{d:[90]}}];
+	 	var y = deepClone(x);
+	 	console.log(_.isEqual(x,y));
+	 	function visit(mapFun,resultFun,array){
+	 		if(_.isArray(array)){
+	 			return resultFun(_.map(array,mapFun));
+	 		}else{
+	 			return resultFun(array);
+	 		}
+	 	}
+
+	 	console.log(visit(_.identity,_.isNumber,42));
+	 	console.log(visit(_.isNumber,_.identity,[42,2,4,null]));
+	 	//  使用visit 实现 相互递归版本的depthSearch, 叫做 postDepth
+
+	 	function postDepth(fun,ary){
+	 		return visit(partial1(postDepth,fun),fun,ary);
+	 	}
+	 	function preDepth(fun,ary){
+	 		return visit(partial1(preDepth,fun),fun,ary);
+	 	}
+	 	console.log(postDepth(_.identity,influences));
+	 	console.log(postDepth(function(x){
+	 		if(x === 'Lisp'){
+	 			return 'LISP';
+	 		}else{
+	 			return x;
+	 		}
+	 	},influences));
+
+	 	function inflencedWithStrategy(strategy,lang,graph){
+	 		var results = [];
+	 		strategy(function(x){
+	 			if(_.isArray(x)&& _.first(x) === lang){
+	 				results.push(second(x));
+
+	 			}
+	 			return x;
+	 		},graph)
+	 		return results;
+	 	}
+	 	console.log(influences,'99900')
+	 	console.log(inflencedWithStrategy(postDepth,'Lisp',influences));
+
+	 	// evenSteven(100000)
+	 	// 消除 堆栈溢出的问题 的一个解决办法  是返回一个函数，他包装调用而不是直接调用
+	 	function evenOline(n){
+	 		if(n=== 0){
+	 			return true;
+	 		}else{
+	 			return partial1(oddOline,Math.abs(n) - 1);
+	 		}
+	 	}
+
+	 	function oddOline(n){
+	 		if(n=== 0){
+	 			return true;
+	 		}else{
+	 			return partial1(evenOline, Math.abs(n) - 1);
+	 		}
+	 	}
+
+	 	// 功能是 不断的调用函数的返回值，直到它不再是一个函数
+	 	function trampoline(fun,/* args*/){
+	 		var result = fun.apply(fun,_.rest(arguments));
+	 		while (_.isFunction(result)) {
+	 			result = result();
+	 		}
+	 		return result;
+	 	}
+	 	console.log(trampoline(oddOline,3));
+
+	 	function isEvenSafe(n){
+	 		if(n=== 0){
+	 			return true;
+	 		}else{
+	 			return trampoline(partial1(oddOline,Math.abs(n)-1));
+	 		}
+	 	}
+
+	 	function isOddSafe(n){
+	 		if(n===0){
+	 			return true;
+	 		}else{
+	 			return trampoline(partial1(evenOline,Math.abs(n)-1));
+	 		}
+	 	}
+	 	console.log(isOddSafe(2000000));
+
+	 	// generator 函数的实现
+	 	function generator(seed,current,step){
+	 		return {
+	 			head:current(seed),
+	 			tail:function(){
+	 				console.log('forced');
+	 				return generator(step(seed),current,step);
+	 			}
+	 		}
+	 	}
+	 	function genHead(gen){return gen.head}
+	 	function genTail(gen){return gen.tail()}
+	 	var ints = generator(0,_.identity,function (n){return n+1})
+	 	console.log(genHead(ints));
+	 	console.log(genTail(ints));
+	 	function genTake(n,gen){
+	 		var doTake = function(x,g,ret){
+	 			if(x === 0){
+	 				return ret;
+	 			}else{
+	 				return partial(doTake,x-1,genTail(g))
+	 			}
+	 		}
+	 		return trampoline(doTake,n,gen,[]);
+	 	}
+
+	 	console.log(genTake(10,ints));
 	}
 </script>
 
