@@ -657,7 +657,7 @@
 	 		}
 	 	},influences));
 
-	 	function inflencedWithStrategy(strategy,lang,graph){
+	 	function influencedWithStrategy(strategy,lang,graph){
 	 		var results = [];
 	 		strategy(function(x){
 	 			if(_.isArray(x)&& _.first(x) === lang){
@@ -669,7 +669,7 @@
 	 		return results;
 	 	}
 	 	console.log(influences,'99900')
-	 	console.log(inflencedWithStrategy(postDepth,'Lisp',influences));
+	 	console.log(influencedWithStrategy(postDepth,'Lisp',influences));
 
 	 	// evenSteven(100000)
 	 	// 消除 堆栈溢出的问题 的一个解决办法  是返回一个函数，他包装调用而不是直接调用
@@ -743,6 +743,138 @@
 	 	}
 
 	 	console.log(genTake(10,ints));
+
+	 	var groupFrom  = curry2(_.groupBy)(_.first);
+	 	var groupTo = curry2(_.groupBy)(_.second);
+	 	function influenced(graph,node){
+	 		return _.map(groupFrom(graph)[node],second);
+	 	}
+	 	console.log(influencedWithStrategy(preDepth,'Lisp',influences),'influencedWithStrategy');
+	 	console.log(influenced(influences,'Lisp'))
+
+	 	var rand = partial1(_.random,1);
+	 	console.log(rand(10));
+	 	console.log(repeatedly(10, partial1(rand,10)));
+	 	function randString(len){
+	 		var ascii = repeatedly(len,partial1(rand,26));
+	 		return _.map(ascii,function(n){
+	 			return n.toString(36);
+	 		}).join('');
+	 	}
+
+	 	console.log(randString(0));
+	 	console.log(randString(1));
+	 	console.log(randString(5));
+
+	 	// describe('randString',function(){
+
+	 	// })
+	 	var PI = 3.14;
+	 	function areaOfACircle(redius){
+	 		return PI * sqrt(radius);
+	 	}
+
+	 	function generateRandomCharacter(){
+	 		return rand(26).toString(36);
+	 	}
+
+	 	function generateString(charGen,len){
+	 		return repeatedly(len,charGen).join('');
+	 	}
+	 	console.log(generateString(generateRandomCharacter,20));
+
+	 	function skipTake(n,coll){
+	 		var ret = [];
+	 		var sz = _.size(coll);
+	 		for(var index = 0;index < sz; index += n){
+	 			ret.push(coll(index))
+	 		}
+	 		return ret;
+	 	}
+	 	function summ(array){ 
+	 		var result = 0;
+	 		var sz = array.length;
+	 		for(var i = 0;i<sz;i++){
+	 			result += array[i];
+	 		}
+	 		return result;
+	 	}
+	 	console.log(summ(_.range(1,11)));
+	 	
+	 	function summRec(array,seed){
+	 		if(_.isEmpty(array)){
+	 			return seed
+	 		}else{
+	 			return summRec(_.rest(array),_.first(array) + seed);
+	 		}
+	 	}
+	 	console.log(summRec([],0));
+	 	console.log(summRec(_.range(1,11),0));
+	 	function deepFreeze(obj){
+	 		if(!Object.isFrozen(obj)){
+	 			Object.freeze(obj);
+	 		}
+	 		for(var key in obj){
+	 			if(!obj.hasOwnProperty(key) || !_.isObject(obj[key])){
+	 				continue;
+	 			}
+	 			deepFreeze(obj[key]);
+	 		}
+	 	}
+
+	 	function Queue(elems){
+	 		this._q = elems
+	 	}
+	 	Queue.prototype = {
+	 		enqueue:function(thing){
+	 			return new Queue(this._q + thing);
+	 		}
+	 	};
+
+	 	var SafeQueue = function(elems){
+	 		this._q = _.clone(elems)
+	 	}
+	 	SafeQueue.prototype = {
+	 		enqueue:function(thing){
+	 			return new SafeQueue(cat(this._q,[thing]));
+	 		}
+	 	}
+
+	 	function Container(init){
+	 		this._value = init;
+	 	}
+	 	Container.prototype = {
+	 		undate:function(fun/*args*/){
+	 			var args = _.rest(arguments);
+	 			var old = this._value;
+	 			this._value = fun.applay(this,constructor(oldValue,args))
+	 			return this._value;
+	 		}
+	 	}
+
+	 	function creatPerson(){
+	 		var firstName = '';
+	 		var lastName = '';
+	 		var age = 0;
+	 		return {
+	 			setFirstName: function(fn){
+	 				firstName = fn;
+	 				return this;
+	 			},
+	 			setLastName: function(ln){
+	 				lastName = ln;
+	 				return this;
+	 			},
+	 			setAge :function(a){
+	 				age = a;
+	 				return this;
+	 			},
+	 			toString:function(){
+	 				return [firstName,lastName,age].join(' ');
+	 			}
+	 		};
+	 	}
+	 	console.log(creatPerson().setFirstName('xiaoming').setLastName('zhang').setAge(23).toString());
 	}
 </script>
 
