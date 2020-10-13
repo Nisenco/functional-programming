@@ -875,6 +875,90 @@
 	 		};
 	 	}
 	 	console.log(creatPerson().setFirstName('xiaoming').setLastName('zhang').setAge(23).toString());
+
+	 	function lazyChain(obj){
+	 		this._calls = [];
+	 		this._target = obj
+	 	}
+	 	lazyChain.prototype.invoke = function(methodName/* , args*/){
+	 		var args = _.rest(arguments);
+	 		this._calls.push(function(target){
+	 			var meth = target[methodName];
+	 			return meth.apply(target,args);
+	 		})
+	 		return this;
+	 	}
+	 	console.log(new lazyChain([2,1,3]).invoke('sort')._calls);
+
+	 	lazyChain.prototype.force = function(){
+	 		return _.reduce(this._calls,function(target,thunk){
+	 			return thunk(target);
+	 		},this._target);
+	 	};
+	 	console.log(new lazyChain([2,1,3]).invoke('sort').force());
+
+	 	lazyChain.prototype.tap = function(fun){
+	 		this._calls.push(function(target){
+	 			fun(target);
+	 			return target;
+	 		});
+	 		return this;
+	 	}
+	 	var deferredSort = new lazyChain([2,1,3]).invoke('sort').tap(alert);
+	 	// console.log(deferredSort.force(),'deferredSort');
+	 	function lazyChainChainChain(obj){
+	 		var isLC = (obj instanceof lazyChain);
+	 		console.log(isLC,'isLC');
+	 		this._calls = isLC? cat(obj._calls,[]):[];
+	 		console.log(this._calls,'this._calls');
+	 		this._target = isLC? obj._target:obj;
+	 	}
+	 	// console.log(new lazyChainChainChain(deferredSort).invoke('toString').force());
+
+	 	function go(){
+	 		var d = $.Deferred();
+	 		$.when('')
+		 		.then(function(){
+		 			setTimeout(function(){
+		 				console.log("sub-task 1");
+		 			}, 5000)
+		 		})
+		 		.then(function(){
+		 			setTimeout(function(){
+		 				console.log('sub-task 2');
+		 			},10000)
+		 		})
+		 		.then(function(){
+		 			setTimeout(function(){
+		 				d.resolve(' done done done');
+		 			},15000)
+		 		})
+		 		return d.promise();
+	 	}
+	 	// var yearning = go().done(note);
+	 	// console.log(yearning.state())
+	 	function pipeline(seed/*, args*/){
+	 		return _.reduce(_.rest(arguments),function(l,r){return r(l);},seed);
+	 	}
+	 	function fifth(a){
+	 		return pipeline(a,_.rest,_.rest,_.rest,_.rest,_.first);
+	 	}
+	 	function negativeFifth(a){
+	 		return pipeline(a,fifth,function(n){return -n});
+	 	}
+	 	console.log(negativeFifth([1,2,3,4,5,6,7,8]));
+	 	function actions(acts,done){
+	 		return function(seed){
+	 			var init = {values:[],state:seed};
+	 			var intermediate = _.reduce(acts,function(stateObj,action){
+	 				var result = action(stateObj.state);
+	 				var values = cat(stateObj.values,[result.answer]);
+	 				return {values:values,state:result.state};
+	 			},init);
+	 			var keep = _.filter(intermediate.values,existy);
+	 			return done(keep,intermediate.state);
+	 		};
+	 	};
 	}
 </script>
 
